@@ -52,7 +52,7 @@ class Namespace(jinja2.ext.Extension):
 
 BINOPERATORS = {
     "and": "&&",
-    "or": "||",
+    "or": "||"
     }
 
 OPERATORS = {
@@ -503,13 +503,21 @@ class MacroCodeGenerator(BaseCodeGenerator):
         def visitor(self, node, frame):
             self.write("(")
             self.visit(node.left, frame)
-            self.write(" %s " % BINOPERATORS[operator])
+
+            if operator in BINOPERATORS:
+                self.write(" %s " % BINOPERATORS[operator])
+            else:
+                self.write(" %s " % operator)
+
             self.visit(node.right, frame)
             self.write(")")
         return visitor
 
     visit_And = binop("and")
     visit_Or = binop("or")
+
+    visit_Add = binop('+')
+    visit_Sub = binop('-')
 
     def visit_Compare(self, node, frame):
         self.visit(node.expr, frame)
@@ -671,3 +679,21 @@ class MacroCodeGenerator(BaseCodeGenerator):
         extra_kwargs = forward_caller and {"caller": "caller"} or None
         self.signature(node, frame, extra_kwargs)
         self.write(", output)")
+
+
+    def visit_Filter(self, node, frame):
+        filter_frame = frame.soft()
+
+        self.write("jinja2_filters.filter_%s(" % node.name)
+        self.visit(node.node, filter_frame)
+
+        if len(node.kwargs):
+            self.write(", {")
+
+            for arg in node.kwargs:
+                self.write("%s: " % arg.key)
+                self.visit(arg.value, filter_frame)
+
+            self.write(" }")
+
+        self.write(")")

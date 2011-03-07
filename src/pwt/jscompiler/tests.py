@@ -603,6 +603,52 @@ xxx.ns1.hello = function(opt_data, opt_sb) {
 }""")
 
 
+    def test_filter1(self):
+        # XXX - test filter without kwargs
+        node = self.get_compile_from_string("""{% namespace test %}
+{% macro filtertest(data) %}
+{{ data|title() }}
+{% endmacro %}
+""")
+        stream = StringIO()
+        jscompiler.generate(
+            node, self.env, "filter.html", "filter.html", stream = stream)
+        source_code = stream.getvalue()
+
+        self.assertEqual(source_code, """goog.provide('test');
+goog.require('soy');
+
+
+test.filtertest = function(opt_data, opt_sb) {
+    var output = opt_sb || new soy.StringBuilder();
+    output.append('\\n', jinja2_filters.filter_title(opt_data.data), '\\n');
+    if (!opt_sb) return output.toString();
+}""")
+
+
+    def test_filter2(self):
+        # XXX - test filter with kwargs
+        node = self.get_compile_from_string("""{% namespace test %}
+{% macro filtertest(data) %}
+{{ data|truncate(length=280) }}
+{% endmacro %}
+""")
+        stream = StringIO()
+        jscompiler.generate(
+            node, self.env, "filter.html", "filter.html", stream = stream)
+        source_code = stream.getvalue()
+
+        self.assertEqual(source_code, """goog.provide('test');
+goog.require('soy');
+
+
+test.filtertest = function(opt_data, opt_sb) {
+    var output = opt_sb || new soy.StringBuilder();
+    output.append('\\n', jinja2_filters.filter_truncate(opt_data.data, { length: 280 }), '\\n');
+    if (!opt_sb) return output.toString();
+}""")        
+
+
 class JSCompilerTemplateTestCaseOptimized(JSCompilerTemplateTestCase):
 
     def get_compile_from_string(self, source, name = None, filename = None):
