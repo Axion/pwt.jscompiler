@@ -52,7 +52,7 @@ class Namespace(jinja2.ext.Extension):
 
 BINOPERATORS = {
     "and": "&&",
-    "or": "||"
+    "or":  "||",
     }
 
 OPERATORS = {
@@ -428,6 +428,14 @@ class MacroCodeGenerator(BaseCodeGenerator):
         else:
             self.write(repr(val))
 
+    def visit_List(self, node, frame):
+        self.write("[")
+        for idx, item in enumerate(node.items):
+            if idx:
+                self.write(", ")
+            self.visit(item, frame)
+        self.write("]")
+
     def visit_Dict(self, node, frame):
         self.write("{")
         first = True
@@ -503,28 +511,57 @@ class MacroCodeGenerator(BaseCodeGenerator):
         def visitor(self, node, frame):
             self.write("(")
             self.visit(node.left, frame)
-
-            if operator in BINOPERATORS:
-                self.write(" %s " % BINOPERATORS[operator])
-            else:
-                self.write(" %s " % operator)
-
+            self.write(" %s " % BINOPERATORS.get(operator, operator))
             self.visit(node.right, frame)
             self.write(")")
         return visitor
 
+    def Math(operator):
+        def visitor(self, node, frame):
+            self.write("Math.%s(" % operator)
+            self.visit(node.left, frame)
+            self.write(", ")
+            self.visit(node.right, frame)
+            self.write(")")
+        return visitor
+
+    # Math operators
+    visit_Add = binop("+")
+    visit_Sub = binop("-")
+    visit_Mul = binop("*")
+    visit_Div = binop("/")
+
+    def visit_FloorDiv(self, node, frame):
+        self.write("Math.floor(")
+        self.visit(node.left, frame)
+        self.write(" / ")
+        self.visit(node.right, frame)
+        self.write(")")
+
+    visit_Pow = Math("pow")
+    visit_Mod = binop("%")
+    visit_And = binop("and")
+    visit_Or = binop("or")
+    ## visit_Pos = uaop('+')
+    ## visit_Neg = uaop('-')
+    ## visit_Not = uaop('not ')
+
     visit_And = binop("and")
     visit_Or = binop("or")
 
-    visit_Add = binop('+')
-    visit_Sub = binop('-')
+    del binop, Math
 
     def visit_Compare(self, node, frame):
         self.visit(node.expr, frame)
+        # XXX - ops is a list. Can we have a list of comparisons
         for op in node.ops:
             self.visit(op, frame)
 
     def visit_Operand(self, node, frame):
+        if node.op not in OPERATORS:
+            raise jinja2.compiler.TemplateAssertionError(
+                "Comparison operator '%s' not supported in JavaScript",
+                node.lineno, self.name, self.filename)
         self.write(" %s " % OPERATORS[node.op])
         self.visit(node.expr, frame)
 
