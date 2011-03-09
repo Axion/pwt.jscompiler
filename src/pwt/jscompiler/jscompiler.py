@@ -731,6 +731,6 @@ class MacroCodeGenerator(BaseCodeGenerator):
                 self.write("%s: " % arg.key)
                 self.visit(arg.value, filter_frame)
 
-            self.write(" }")
+            self.write("}")
 
         self.write(")")

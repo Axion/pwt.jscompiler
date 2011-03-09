@@ -824,7 +824,7 @@ goog.require('soy');
 
 test.filtertest = function(opt_data, opt_sb) {
     var output = opt_sb || new soy.StringBuilder();
-    output.append('\\n', jinja2_filters.filter_truncate(opt_data.data, { length: 280 }), '\\n');
+    output.append('\\n', jinja2_filters.filter_truncate(opt_data.data, {length: 280}), '\\n');
     if (!opt_sb) return output.toString();
 }""")        
 
